@@ -46,10 +46,19 @@ const neditShopName = ref(null);
 const neditServerName = ref(null);
 const neditShopLimit = ref(null);
 
+const cashierShopName = ref(null);
+const cashierServerName = ref(null);
+const cashierShopLimit = ref(null);
+const ncashierShopName = ref(null);
+const ncashierServerName = ref(null);
+const ncashierShopLimit = ref(null);
+const cashierName = ref(null);
+
 const cashiers = ref([]);
 
 const createNewShopModal = ref(false);
 const editShopModal = ref(false);
+const editShopModal2 = ref(false);
 const createNewCashierModal = ref(false);
 
 async function getData() {
@@ -196,6 +205,43 @@ async function updateShop(params) {
   getShopList();
 }
 
+async function updateCashier(params) {
+  error.value = false;
+  errorMessage.value = null;
+  success.value = false;
+  successMessage.value = null;
+  if (cashierShopName.value === null) {
+    error.value = true;
+    errorMessage.value = "Shop name is required.";
+    return;
+  } else if (cashierShopLimit.value < 5000 && cashierShopLimit.value > 50000) {
+    error.value = true;
+    errorMessage.value = "Limit must be between 5000 and 50000.";
+    return;
+  }
+
+  const res = await axios.post(`${url.url}/api/updateCashier`, {
+    shopName: cashierShopName.value,
+    shopLimit: cashierShopLimit.value,
+    serverType: cashierServerName.value,
+    nshopName: ncashierShopName.value,
+    nshopLimit: ncashierShopLimit.value,
+    nserverType: ncashierServerName.value,
+    user: auth?.user?.username,
+    cashierName: cashierName.value,
+  });
+
+  if (!res.data.success) {
+    error.value = true;
+    errorMessage.value = res.data.message;
+  }
+  if (res.data.success) {
+    success.value = true;
+    successMessage.value = res.data.message;
+  }
+  getCashiersList();
+}
+
 async function getCashiersList(params) {
   setTimeout(async () => {
     const res = await axios.post(`${url.url}/api/getCashierList`, {
@@ -207,6 +253,20 @@ async function getCashiersList(params) {
       console.log(cashiers.value);
     }
   }, 500);
+}
+
+const unclaimed = ref([]);
+const det = ref(null);
+
+async function search(a, b) {
+  const res = await axios.post(`${url.url}/api/searchUnclaimed`, {
+    user: auth?.user?.username,
+    shopname: a,
+    cashiername: b,
+  });
+
+  unclaimed.value = res.data.unclaimed;
+  det.value = res.data.shopnamee + "." + res.data.cashiernamee;
 }
 
 watch(currentShop, (newVal, oldVal) => {
@@ -614,7 +674,7 @@ onMounted(async () => {
           </div>
         </div>
         <hr class="w-full border-[1px] border-[#666]" />
-        <div class="text-xs md:text-lg mt-4">Shops</div>
+        <div class="text-xs md:text-lg mt-4">Cashiers</div>
         <table
           class="w-full text-xs md:text-base my-4 md:my-2 bg-white rounded-lg p-2"
         >
@@ -660,24 +720,38 @@ onMounted(async () => {
                 >
                   {{ g.isBlocked == 1 ? "Activate" : "Deactivate" }}
                 </div>
-                <!-- <div
+                <div
                   @click="
-                    editShopName = g.user;
-                    editShopLimit = g.balanceLimit;
-                    editServerName = g.source === 1 ? 'convex' : 'fiveking';
-                    neditShopName = g.user;
-                    neditShopLimit = g.balanceLimit;
-                    neditServerName = g.source === 1 ? 'convex' : 'fiveking';
-                    editShopModal = true;
+                    cashierShopName = g.cashier;
+                    cashierShopLimit = g.balancelimit;
+                    cashierServerName = g.source === 1 ? 'convex' : 'fiveking';
+                    (cashierName = g.user), (ncashierShopName = g.cashier);
+                    ncashierShopLimit = g.balancelimit;
+                    ncashierServerName = g.source === 1 ? 'convex' : 'fiveking';
+                    editShopModal2 = true;
                   "
                   class="bg-yellow-500 text-xs md:text-base px-2 py-1 rounded text-white hover:bg-yellow-400 cursor-pointer transition-colors duration-300 w-[40%]"
                 >
                   Edit
-                </div> -->
+                </div>
+                <div
+                  @click="search(g.user, g.cashier)"
+                  class="text-xs md:text-base px-2 py-1 rounded text-white cursor-pointer transition-colors duration-300 w-[40%] bg-blue-500 hover:bg-blue-400"
+                >
+                  Search
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <div v-if="unclaimed.length > 0" class="mt-2 bg-white rounded-lg p-2">
+          Unclaimed Tickets for Today for
+          <span class="text-green-500">{{ det }}</span>
+          <div v-for="u in unclaimed">
+            {{ u.ticketId }}
+          </div>
+        </div>
       </div>
 
       <div
@@ -788,6 +862,69 @@ onMounted(async () => {
 
             <div
               @click="updateShop()"
+              class="bg-[#37b34a] text-xs md:text-base px-2 py-1 rounded text-white hover:bg-[#21d64e] cursor-pointer transition-colors duration-300 text-center"
+            >
+              Update Shop
+            </div>
+            <div v-if="error" class="text-red-500 text-center">
+              {{ errorMessage }}
+            </div>
+            <div v-if="success" class="text-green-500 text-center">
+              {{ successMessage }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="editShopModal2"
+        class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20 p-2"
+      >
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/2 relative">
+          <CloseIcon
+            class="absolute top-2 right-2"
+            @click="editShopModal2 = false"
+          />
+          <h2 class="text-lg font-semibold mb-4">Edit cashier</h2>
+          <div class="flex flex-col gap-2 w-full">
+            <div class="flex flex-col gap-1">
+              Cashier Name
+              <input
+                type="text"
+                v-model="cashierShopName"
+                class="p-2 bg-[#efefef] rounded outline-none border border-[#37b34a]"
+                disabled
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              Server Config
+              <Select
+                v-model="cashierServerName"
+                :options="['convex', 'fiveking']"
+              />
+            </div>
+
+            <!-- <div class="flex flex-col gap-1">
+              Number of Cashiers
+              <input
+                type="number"
+                v-model="noOfCashiers"
+                class="p-2 bg-[#efefef] rounded outline-none border border-[#37b34a]"
+              />
+            </div> -->
+
+            <div class="flex flex-col gap-1">
+              Shop Cashier Limit
+              <input
+                type="number"
+                v-model="cashierShopLimit"
+                class="p-2 bg-[#efefef] rounded outline-none border border-[#37b34a]"
+              />
+            </div>
+
+            <div
+              @click="updateCashier()"
               class="bg-[#37b34a] text-xs md:text-base px-2 py-1 rounded text-white hover:bg-[#21d64e] cursor-pointer transition-colors duration-300 text-center"
             >
               Update Shop
