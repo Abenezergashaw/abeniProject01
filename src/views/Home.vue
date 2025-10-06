@@ -553,6 +553,7 @@ onMounted(async () => {
               <th class="text-center">Total Stake</th>
               <th class="text-center">Winnings</th>
               <th class="text-center">Cancelled</th>
+              <th class="text-center">Unclaimed</th>
               <th class="text-center">Net Balance</th>
             </tr>
           </thead>
@@ -564,6 +565,9 @@ onMounted(async () => {
               <td class="text-center">{{ (g?.sumWin ?? 0).toFixed(2) }}</td>
               <td class="text-center">
                 {{ (g?.sumCancelled ?? 0).toFixed(2) }}
+              </td>
+              <td class="text-center">
+                {{ (g?.unclaimed ?? 0).toFixed(2) }}
               </td>
               <td class="text-center">
                 {{
