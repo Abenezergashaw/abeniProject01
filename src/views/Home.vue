@@ -13,7 +13,7 @@ const auth = useAuthStore();
 const url = useUrl();
 const router = useRouter();
 
-const current = ref("ml");
+const current = ref("rr");
 
 const dateOptions = ["Today", "Yesterday", "Last 7 days", "Last 30 Days"];
 const today = new Date().toISOString().split("T")[0];
