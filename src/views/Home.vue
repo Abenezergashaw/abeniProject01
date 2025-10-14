@@ -13,7 +13,7 @@ const auth = useAuthStore();
 const url = useUrl();
 const router = useRouter();
 
-const current = ref("rr");
+const current = ref("ml");
 
 const dateOptions = ["Today", "Yesterday", "Last 7 days", "Last 30 Days"];
 const today = new Date().toISOString().split("T")[0];
@@ -59,6 +59,7 @@ const cashiers = ref([]);
 const createNewShopModal = ref(false);
 const editShopModal = ref(false);
 const editShopModal2 = ref(false);
+const editShopModal3 = ref(false);
 const createNewCashierModal = ref(false);
 
 async function getData() {
@@ -277,6 +278,66 @@ watch(currentShop, (newVal, oldVal) => {
 function handleLogout() {
   auth.logout();
 }
+const locationName = ref(null);
+async function createLocation() {
+  error.value = false;
+  errorMessage.value = null;
+  success.value = false;
+  successMessage.value = null;
+
+  const res = await axios.post(`${url.url}/api/createLocation`, {
+    user: auth?.user?.username,
+    location: locationName.value,
+  });
+
+  if (!res.data.success) {
+    error.value = true;
+    errorMessage.value = res.data.message;
+  }
+  if (res.data.success) {
+    success.value = true;
+    successMessage.value = res.data.message;
+    listLocation();
+  }
+}
+const locations = ref([]);
+async function listLocation() {
+  error.value = false;
+  errorMessage.value = null;
+  success.value = false;
+  successMessage.value = null;
+
+  const res = await axios.post(`${url.url}/api/listLocation`, {
+    user: auth?.user?.username,
+  });
+
+  console.log(res.data);
+
+  if (!res.data.success) {
+    error.value = true;
+    errorMessage.value = res.data.message;
+  }
+  if (res.data.success) {
+    locations.value = res.data.locations;
+    console.log(locations.value);
+  }
+}
+
+async function changeLocationStatus(ip) {
+  error.value = false;
+  errorMessage.value = null;
+  success.value = false;
+  successMessage.value = null;
+
+  const res = await axios.post(`${url.url}/api/changeLocationStatus`, {
+    user: auth?.user?.username,
+    ip,
+  });
+
+  if (res.data.success) {
+    listLocation();
+  }
+}
 
 onMounted(async () => {
   const ok = await auth.checkSession();
@@ -355,6 +416,17 @@ onMounted(async () => {
         "
       >
         Manage Cashier
+      </div>
+
+      <div
+        class="px-2 rounded-lg py-1 cursor-pointer tracking-wider text-center hover:opacity-50 transition-all duration-300"
+        :class="`${current === 'ml' ? 'bg-[#8c8c8c] text-white' : 'bg-white'}`"
+        @click="
+          current = 'ml';
+          listLocation();
+        "
+      >
+        Manage Server/Location
       </div>
     </div>
     <div
@@ -758,6 +830,65 @@ onMounted(async () => {
         </div>
       </div>
 
+      <div v-if="current === 'ml'" class="p-2 w-full">
+        <div class="flex justify-between items-center mb-2">
+          <div class="text-xs md:text-lg">Manage Server/Location</div>
+          <!-- <div class="flex items-center gap-1 w-[40%]"> -->
+          <div
+            @click="editShopModal3 = true"
+            class="bg-[#37b34a] text-xs md:text-base px-2 py-1 rounded text-white hover:bg-[#21d64e] cursor-pointer transition-colors duration-300 w-[40%]"
+          >
+            Create server
+          </div>
+          <!-- </div> -->
+        </div>
+        <hr class="w-full border-[1px] border-[#666]" />
+
+        <div class="text-xs md:text-lg">Locations</div>
+        <table
+          class="w-full text-xs md:text-base my-4 md:my-2 bg-white rounded-lg p-2"
+        >
+          <thead>
+            <tr class="font-semibold bg-[#efefef] py-2 text-xs md:text-base">
+              <th class="text-center">ID</th>
+              <th class="text-center">Admin</th>
+              <th class="text-center">Location</th>
+              <th class="text-center">Ip</th>
+              <th class="text-center">Status</th>
+              <th class="text-center"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr class="text-xs md:text-base" v-for="(l, index) in locations">
+              <td class="text-center">{{ index + 1 }}</td>
+              <td class="text-center">{{ l.createdBy }}</td>
+              <td class="text-center">{{ l.user }}</td>
+              <td class="text-center">{{ l.ip }}</td>
+              <td
+                class="text-center"
+                :class="l.status === 1 ? 'text-green-500' : 'text-red-500'"
+              >
+                {{ l.status === 1 ? "active" : "not active" }}
+              </td>
+              <td
+                @click="changeLocationStatus(l.ip)"
+                class="text-center"
+                :class="l.status === 1 ? 'bg-red-500' : 'bg-green-500'"
+              >
+                {{ l.status === 1 ? "Deactivate" : "Activate" }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          v-if="locations.length === 0"
+          class="text-xs md:text-lg text-center py-1 rounded w-[50%] bg-red-300 text-white mx-auto"
+        >
+          No server.
+        </div>
+      </div>
+
       <div
         v-if="createNewShopModal"
         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20 p-2"
@@ -932,6 +1063,43 @@ onMounted(async () => {
               class="bg-[#37b34a] text-xs md:text-base px-2 py-1 rounded text-white hover:bg-[#21d64e] cursor-pointer transition-colors duration-300 text-center"
             >
               Update Shop
+            </div>
+            <div v-if="error" class="text-red-500 text-center">
+              {{ errorMessage }}
+            </div>
+            <div v-if="success" class="text-green-500 text-center">
+              {{ successMessage }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create server  -->
+      <div
+        v-if="editShopModal3"
+        class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20 p-2"
+      >
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/2 relative">
+          <CloseIcon
+            class="absolute top-2 right-2"
+            @click="editShopModal3 = false"
+          />
+          <h2 class="text-lg font-semibold mb-4">Create Location</h2>
+          <div class="flex flex-col gap-2 w-full">
+            <div class="flex flex-col gap-1">
+              Location name
+              <input
+                type="text"
+                v-model="locationName"
+                class="p-2 bg-[#efefef] rounded outline-none border border-[#37b34a]"
+              />
+            </div>
+
+            <div
+              @click="createLocation()"
+              class="bg-[#37b34a] text-xs md:text-base px-2 py-1 rounded text-white hover:bg-[#21d64e] cursor-pointer transition-colors duration-300 text-center"
+            >
+              Create Location
             </div>
             <div v-if="error" class="text-red-500 text-center">
               {{ errorMessage }}
